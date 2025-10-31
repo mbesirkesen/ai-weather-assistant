@@ -1,131 +1,128 @@
 # AI Weather Assistant
 
-A Python-based AI assistant powered by LangGraph, LangChain, and OpenAI API. This assistant combines Retrieval-Augmented Generation (RAG) with live API integration to answer questions about weather API documentation and provide real-time weather data.
+LangGraph, LangChain ve OpenAI API kullanılarak geliştirilmiş Python tabanlı bir AI asistan. Bu asistan, Retrieval-Augmented Generation (RAG) ile canlı API entegrasyonunu birleştirerek hava durumu API dokümantasyonu hakkında soruları cevaplar ve gerçek zamanlı hava durumu verisi sağlar.
 
-## Project Overview
+## Proje Genel Bakış
 
-The AI Weather Assistant is a sophisticated conversational AI that demonstrates:
+AI Weather Assistant, şunları gösteren gelişmiş bir konuşmalı AI'dır:
 
-1. **Retrieval-Augmented Generation (RAG)**: Answers questions based on OpenWeatherMap API documentation
-2. **Agentic Behavior**: Fetches live weather data from OpenWeatherMap API
-3. **Memory Management**: Implements both short-term (conversation context) and long-term (persistent) memory
-4. **LangGraph Integration**: Built with LangGraph for orchestration and LangSmith for tracing
+1. **Retrieval-Augmented Generation (RAG)**: OpenWeatherMap API dokümantasyonuna dayalı soru-cevap
+2. **Agentic Behavior**: OpenWeatherMap API'den canlı hava durumu verisi çeker
+3. **Memory Management**: Hem kısa vadeli (konuşma bağlamı) hem uzun vadeli (kalıcı) bellek implementasyonu
+4. **LangGraph Entegrasyonu**: Orchestration için LangGraph ve tracing için LangSmith ile geliştirildi
 
-### Key Capabilities
+### Temel Yetenekler
 
-- 📚 **Documentation Q&A**: Answers questions about API keys, endpoints, parameters, and usage
-- 🌤️ **Live Weather Data**: Fetches current weather conditions for any city worldwide
-- 🧠 **Context Awareness**: Remembers conversation history and context
-- 🔄 **Smart Memory**: Automatically compresses long conversations to manage context limits
-- 📊 **Tracing**: Full LangSmith integration for debugging and monitoring
+- 📚 **Dokümantasyon Sorguları**: API anahtarları, endpoint'ler, parametreler ve kullanım hakkında soruları cevaplar
+- 🌤️ **Canlı Hava Durumu Verisi**: Dünya çapında herhangi bir şehir için güncel hava durumu koşullarını çeker
+- 🧠 **Bağlam Farkındalığı**: Konuşma geçmişini ve bağlamı hatırlar
+- 🔄 **Akıllı Bellek**: Context limitlerini yönetmek için uzun konuşmaları otomatik olarak sıkıştırır
+- 📊 **Tracing**: Debug ve monitoring için tam LangSmith entegrasyonu
 
-## Architecture
+## Mimari
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         User Query                              │
+│                         Kullanıcı Sorgusu                       │
 └─────────────────────────────────────────────────────────────────┘
                                 ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Intent Classification                         │
-│                   (LLM-based routing)                            │
+│                    Niyet Sınıflandırma (Intent)                  │
+│                   (LLM tabanlı routing)                          │
 └─────────────────────────────────────────────────────────────────┘
             ↓                              ↓
 ┌─────────────────────┐         ┌────────────────────────┐
-│   RAG Path          │         │   Weather API Path     │
+│   RAG Yolu          │         │   Weather API Yolu      │
 │─────────────────────│         │────────────────────────│
-│ 1. Query Vector     │         │ 1. Extract City Names  │
-│    Database         │         │ 2. Call OpenWeatherMap │
-│ 2. Retrieve Docs    │         │ 3. Format Response     │
-│ 3. Generate Answer  │         │                        │
+│ 1. Vector DB'ye    │         │ 1. Şehir İsimlerini     │
+│    Sorgu           │         │    Çıkar                │
+│ 2. Dokümanları     │         │ 2. OpenWeatherMap'ı     │
+│    Bul             │         │    Çağır                │
+│ 3. Cevap Üret      │         │ 3. Cevabı Formatla      │
 └─────────────────────┘         └────────────────────────┘
             ↓                              ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Memory Manager                                │
-│  • Short-term: Conversation History                              │
-│  • Long-term: Persistent Storage                                 │
-│  • Compression: Summarize when needed                            │
+│                    Bellek Yöneticisi                            │
+│  • Kısa vadeli: Konuşma Geçmişi                                 │
+│  • Uzun vadeli: Kalıcı Depolama                                 │
+│  • Sıkıştırma: Gerektiğinde Özetle                              │
 └─────────────────────────────────────────────────────────────────┘
                                 ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│                      Final Response                             │
+│                      Son Cevap                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Component Interaction
+### Bileşen Etkileşimi
 
-1. **Agent Orchestrator**: Routes queries to appropriate handlers based on intent
-2. **Vector Store**: MongoDB Atlas with embeddings for RAG
-3. **Weather API**: Direct integration with OpenWeatherMap API
-4. **Memory Manager**: Handles conversation context and persistence
-5. **LangGraph**: State management and workflow orchestration
-6. **LangSmith**: Tracing and monitoring
+1. **Agent Orchestrator**: Sorguları niyete göre uygun handler'lara yönlendirir
+2. **Vector Store**: RAG için embeddings ile MongoDB Atlas
+3. **Weather API**: OpenWeatherMap API ile doğrudan entegrasyon
+4. **Memory Manager**: Konuşma bağlamı ve persistency'yi yönetir
+5. **LangGraph**: State management ve workflow orchestration
+6. **LangSmith**: Tracing ve monitoring
 
-## Technology Stack
+## Teknoloji Yığını
 
-- **Language**: Python 3.9+
-- **LLM Provider**: OpenAI (GPT-4o-mini, text-embedding-3-small)
-- **Frameworks**: 
+- **Dil**: Python 3.9+
+- **LLM Sağlayıcı**: OpenAI (GPT-4o-mini, text-embedding-3-small)
+- **Framework'ler**: 
   - LangGraph (orchestration)
   - LangChain (chain composition)
   - LangSmith (tracing)
-- **Vector Database**: MongoDB Atlas
-- **API Integration**: OpenWeatherMap API
+- **Vector Veritabanı**: MongoDB Atlas
+- **API Entegrasyonu**: OpenWeatherMap API
 - **Server**: FastAPI + Uvicorn
 - **Interface**: LangGraph Studio
 
-## Setup Instructions
+## Kurulum Talimatları
 
-### Prerequisites
+### Önkoşullar
 
-- Python 3.9 or higher
-- MongoDB Atlas account (free tier available)
-- OpenAI API key
-- OpenWeatherMap API key
-- LangSmith API key
+- Python 3.9 veya üzeri
+- MongoDB Atlas hesabı (ücretsiz tier mevcut)
+- OpenAI API anahtarı
+- OpenWeatherMap API anahtarı
+- LangSmith API anahtarı
 
-### Installation Steps
+### Kurulum Adımları
 
-1. **Clone the repository**:
+1. **Repository'yi klonlayın**:
 ```bash
-git clone <repository-url>
+git clone https://github.com/mbesirkesen/ai-weather-assistant.git
 cd ai-weather-assistant
 ```
 
-2. **Create a virtual environment**:
+2. **Virtual environment oluşturun**:
 ```bash
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate  # Windows'ta: venv\Scripts\activate
 ```
 
-3. **Install dependencies**:
+3. **Bağımlılıkları yükleyin**:
 ```bash
 pip install -r requirements.txt
 ```
 
-4. **Set up environment variables**:
-   - Copy `env.example` to `.env`:
-```bash
-cp env.example .env
-```
-   - Edit `.env` and fill in all API keys:
+4. **Environment değişkenlerini ayarlayın**:
+   - `.env` dosyası oluşturun ve tüm API anahtarlarını doldurun:
 ```env
-OPENAI_API_KEY=your_openai_api_key_here
-LANGSMITH_API_KEY=your_langsmith_api_key_here
+OPENAI_API_KEY=sk-proj-...
+LANGSMITH_API_KEY=lsv2_...
 LANGSMITH_PROJECT=ai-weather-assistant
 LANGCHAIN_TRACING_V2=true
-MONGODB_ATLAS_CONNECTION_STRING=mongodb+srv://username:password@cluster.mongodb.net/
+MONGODB_ATLAS_CONNECTION_STRING=mongodb+srv://...
 MONGODB_DATABASE_NAME=ai_assistant_db
-OPENWEATHERMAP_API_KEY=your_openweathermap_api_key_here
+OPENWEATHERMAP_API_KEY=...
 ```
 
-5. **Set up MongoDB Atlas**:
-   - Create a free cluster at https://www.mongodb.com/atlas
-   - Get your connection string
-   - Create a vector search index in MongoDB Atlas UI:
-     - Go to Atlas Search in your cluster
-     - Click "Create Search Index" → "JSON Editor"
-     - Paste this configuration:
+5. **MongoDB Atlas'ı Ayarlayın** (Detaylı rehber için `SETUP_GUIDE.md` dosyasına bakın):
+   - https://www.mongodb.com/atlas adresinden ücretsiz cluster oluşturun
+   - Connection string'inizi alın
+   - MongoDB Atlas UI'da vector search index'i oluşturun:
+     - Cluster'ınızda "Atlas Search" sekmesine gidin
+     - "Create Search Index" → "JSON Editor" seçin
+     - Bu konfigürasyonu yapıştırın:
      ```json
      {
        "mappings": {
@@ -140,270 +137,270 @@ OPENWEATHERMAP_API_KEY=your_openweathermap_api_key_here
        }
      }
      ```
-     - Index name: `vector_index`
+     - Index adı: `vector_index`
      - Collection: `weather_docs`
 
-6. **Populate the vector database**:
+6. **Vector veritabanını doldurun**:
 ```bash
 python setup_database.py
 ```
 
-This will:
-- Download/load OpenWeatherMap documentation
-- Create embeddings
-- Store in MongoDB Atlas
+Bu işlem:
+- OpenWeatherMap dokümantasyonunu indirir/yükler
+- Embeddings oluşturur
+- MongoDB Atlas'a depolar
 
-## How to Run Locally
+## Yerel Olarak Çalıştırma
 
-### Option 1: Run LangGraph Server (for LangGraph Studio)
+### Seçenek 1: LangGraph Server (LangGraph Studio için)
 
-1. **Start the LangGraph server**:
+1. **LangGraph server'ı başlatın**:
 ```bash
 python server.py
 ```
 
-The server will start on `http://127.0.0.1:20240`
+Server `http://127.0.0.1:20240` adresinde başlayacaktır
 
-2. **Connect with LangGraph Studio**:
-   - Install LangGraph Studio CLI (if not already installed):
+2. **LangGraph Studio ile bağlanın**:
+   - LangGraph Studio CLI'yi yükleyin (yoksa):
 ```bash
 npm install -g @langchain/langgraph-studio
 ```
-   - Open LangGraph Studio and connect to the local server
+   - LangGraph Studio'yu açın ve yerel server'a bağlanın
 
-### Option 2: Run Direct Testing
+### Seçenek 2: Doğrudan Test
 
-Test the assistant directly with:
+Asistanı doğrudan test edin:
 ```bash
 python test_assistant.py
 ```
 
-This runs predefined test queries and displays responses.
+Bu komut önceden tanımlı test sorgularını çalıştırır ve cevapları gösterir.
 
-### Option 3: Interactive Testing
+### Seçenek 3: İnteraktif Test
 
-For interactive testing in Python:
+Python'da interaktif test için:
 ```python
 from agent import WeatherAssistant
 from config import Config
 
-# Validate config
+# Konfigürasyonu doğrula
 Config.validate()
 
-# Initialize assistant
+# Asistanı başlat
 assistant = WeatherAssistant()
 
-# Ask questions
-response = assistant.process_query("What is the weather in Istanbul?")
+# Sorular sor
+response = assistant.process_query("Istanbul'da hava nasıl?")
 print(response)
 
-response = assistant.process_query("How do I get an API key?")
+response = assistant.process_query("API key nasıl alınır?")
 print(response)
 ```
 
-## Example Interactions
+## Örnek Etkileşimler
 
-### RAG Queries (Documentation)
+### RAG Sorguları (Dokümantasyon)
 
-**Query 1**: "How do I get an API key?"
+**Soru 1**: "API key nasıl alınır?"
 
-**Response**: 
+**Cevap**: 
 ```
-To get an API key for OpenWeatherMap:
-1. Sign up at openweathermap.org
-2. Verify your email address
-3. Navigate to API keys section in your account
-4. Generate a new key or use the default key provided
+OpenWeatherMap için API key almak:
+1. openweathermap.org'da kayıt olun
+2. E-posta adresinizi doğrulayın
+3. Hesabınızdaki API keys bölümüne gidin
+4. Yeni bir key oluşturun veya verilen varsayılan key'i kullanın
 
-The API key should be included in all requests as the 'appid' parameter.
-Free tier allows 60 calls per minute.
+API key tüm isteklerde 'appid' parametresi olarak dahil edilmelidir.
+Ücretsiz tier dakikada 60 çağrıya izin verir.
 ```
 
-**Query 2**: "Which endpoint gives current weather data?"
+**Soru 2**: "Hangi endpoint güncel hava durumu verisi verir?"
 
-**Response**:
+**Cevap**:
 ```
-The current weather data endpoint is:
+Güncel hava durumu verisi endpoint'i:
 api.openweathermap.org/data/2.5/weather
 
-Main parameters:
-- q: City name (e.g., "London,uk" or "Istanbul,tr")
-- appid: Your API key (required)
-- units: Temperature units (standard, metric, imperial)
-- lang: Language for descriptions
+Ana parametreler:
+- q: Şehir adı (örn: "London,uk" veya "Istanbul,tr")
+- appid: API key'iniz (zorunlu)
+- units: Sıcaklık birimi (standard, metric, imperial)
+- lang: Açıklamalar için dil
 
-Example request:
-GET https://api.openweathermap.org/data/2.5/weather?q=London,uk&appid=YOUR_KEY&units=metric
+Örnek istek:
+GET https://api.openweathermap.org/data/2.5/weather?q=London,uk&appid=KEY&units=metric
 ```
 
-### Weather API Queries (Live Data)
+### Weather API Sorguları (Canlı Veri)
 
-**Query 3**: "What is the weather in Istanbul right now?"
+**Soru 3**: "Istanbul'da hava şu anda nasıl?"
 
-**Response**:
+**Cevap**:
 ```
-Current weather in Istanbul, TR:
+Istanbul, TR'de güncel hava durumu:
 
-🌡️  Temperature: 22°C (feels like 20°C)
-☁️  Condition: Partly Cloudy
-💧 Humidity: 65%
-🌬️  Wind: 3.2 m/s NE
-☁️  Cloud coverage: 40%
-📊 Pressure: 1013 hPa
-👁️  Visibility: 10 km
-```
-
-**Query 4**: "Give me the temperature in Paris and London"
-
-**Response**:
-```
-Weather for multiple cities:
-
-Paris, FR: 15°C, Light Rain
-London, GB: 18°C, Overcast Clouds
+Sıcaklık: 22°C (hissedilen: 20°C)
+Durum: Parçalı Bulutlu
+Nem: 65%
+Rüzgar: 3.2 m/s NE
+Bulut: 40%
+Basınç: 1013 hPa
+Görüş: 10 km
 ```
 
-## Memory Implementation
+**Soru 4**: "Paris ve London'da sıcaklığı ver"
 
-### Short-Term Memory (Conversation Context)
+**Cevap**:
+```
+Birden fazla şehir için hava durumu:
 
-- **Storage**: In-memory list of message dictionaries
-- **Management**: Automatic compression when approaching context limit
-- **Strategy**: Summarize older messages while keeping recent context
-- **Threshold**: 80% of max context length triggers compression
+Paris, FR: 15°C, Hafif Yağmurlu
+London, GB: 18°C, Bulutlu
+```
 
-**How it works**:
+## Bellek Implementasyonu
+
+### Kısa Vadeli Bellek (Konuşma Bağlamı)
+
+- **Depolama**: Mesaj sözlüklerinin memory listesi
+- **Yönetim**: Context limite yaklaşırken otomatik sıkıştırma
+- **Strateji**: Yeni bağlamı korurken eski mesajları özetle
+- **Threshold**: Max context uzunluğunun %80'i sıkıştırmayı tetikler
+
+**Nasıl Çalışır**:
 ```python
-# Messages stored as:
+# Mesajlar şu şekilde saklanır:
 [
-  {"role": "user", "content": "Hello"},
-  {"role": "assistant", "content": "Hi! How can I help?"},
+  {"role": "user", "content": "Merhaba"},
+  {"role": "assistant", "content": "Merhaba! Nasıl yardımcı olabilirim?"},
   ...
 ]
 
-# When approaching limit:
-# 1. Summarize entire conversation
-# 2. Keep last 25% of messages
-# 3. Prepend summary as context
+# Limite yaklaşıldığında:
+# 1. Tüm konuşmayı özetle
+# 2. Son %25 mesajı tut
+# 3. Özeti bağlam olarak başa ekle
 ```
 
-### Long-Term Memory (Persistent Storage)
+### Uzun Vadeli Bellek (Kalıcı Depolama)
 
-- **Storage**: JSON files on disk
-- **Features**: Save/load conversation history across sessions
-- **Metadata**: Includes summaries and statistics
+- **Depolama**: Disk üzerinde JSON dosyaları
+- **Özellikler**: Oturumlar arasında konuşma geçmişini kaydet/yükle
+- **Metadata**: Özetleri ve istatistikleri içerir
 
-**Usage**:
+**Kullanım**:
 ```python
-# Save memory
+# Belleği kaydet
 assistant.memory_manager.save_to_disk("memory.json")
 
-# Load memory
+# Belleği yükle
 assistant.memory_manager.load_from_disk("memory.json")
 ```
 
-## LangGraph Studio Compatibility
+## LangGraph Studio Uyumluluğu
 
-The assistant is fully compatible with LangGraph Studio:
+Asistan LangGraph Studio ile tam uyumludur:
 
-1. **Graph Definition**: State machine defined in `graph.py`
-2. **Server**: FastAPI server exposing graph endpoints
-3. **State Management**: TypedDict-based state for type safety
-4. **Tracing**: Automatic LangSmith integration
+1. **Graph Tanımı**: `graph.py` içinde tanımlanmış state machine
+2. **Server**: Graph endpoint'lerini açığa çıkaran FastAPI server
+3. **State Management**: Type safety için TypedDict tabanlı state
+4. **Tracing**: Otomatik LangSmith entegrasyonu
 
 ## LangSmith Tracing
 
-All operations are traced through LangSmith:
+Tüm işlemler LangSmith üzerinden izlenir:
 
-- Query processing
-- API calls
-- Vector searches
-- Memory operations
+- Sorgu işleme
+- API çağrıları
+- Vector aramaları
+- Bellek işlemleri
 
-To view traces:
-1. Ensure `LANGCHAIN_TRACING_V2=true` in `.env`
-2. Set `LANGSMITH_API_KEY` and `LANGSMITH_PROJECT`
-3. Access traces at https://smith.langchain.com
+İzlemeleri görmek için:
+1. `.env` dosyasında `LANGCHAIN_TRACING_V2=true` olduğundan emin olun
+2. `LANGSMITH_API_KEY` ve `LANGSMITH_PROJECT` ayarlayın
+3. https://smith.langchain.com adresinden izlemelere erişin
 
-## Project Structure
+## Proje Yapısı
 
 ```
 ai-weather-assistant/
-├── agent.py                 # Main assistant logic
-├── config.py               # Configuration management
-├── data_loader.py          # Documentation loader
-├── graph.py                # LangGraph definition
-├── memory_manager.py       # Memory management
+├── agent.py                 # Ana asistan mantığı
+├── config.py               # Konfigürasyon yönetimi
+├── data_loader.py          # Dokümantasyon yükleyici
+├── graph.py                # LangGraph tanımı
+├── memory_manager.py       # Bellek yönetimi
 ├── server.py              # LangGraph server
-├── setup_database.py      # Database setup script
-├── test_assistant.py      # Test script
-├── vector_store.py        # Vector store operations
+├── setup_database.py      # Veritabanı kurulum scripti
+├── test_assistant.py      # Test scripti
+├── vector_store.py        # Vector store işlemleri
 ├── weather_api.py         # OpenWeatherMap API client
-├── requirements.txt       # Python dependencies
-├── env.example           # Environment template
-├── .gitignore           # Git ignore rules
-└── README.md           # This file
+├── requirements.txt       # Python bağımlılıkları
+├── .gitignore           # Git ignore kuralları
+├── README.md           # Bu dosya
+├── SETUP_GUIDE.md      # Kurulum rehberi (Türkçe)
+└── PROJE_OZETI.md      # Proje özeti
 ```
 
-## Known Limitations and Future Work
+## Bilinen Limitler ve Gelecek Çalışmalar
 
-### Current Limitations
+### Mevcut Limitler
 
-1. **Rate Limits**: OpenAI and OpenWeatherMap rate limits apply
-2. **Context Window**: Limited by OpenAI's context window
-3. **Single Language**: Currently optimized for English
-4. **Documentation**: Static fallback if web scraping fails
-5. **No Multi-Threading**: Sequential processing only
+1. **Rate Limitler**: OpenAI ve OpenWeatherMap rate limitleri geçerlidir
+2. **Context Window**: OpenAI'nin context window'u ile sınırlıdır
+3. **Tek Dil**: Şu anda İngilizce için optimize edilmiştir
+4. **Dokümantasyon**: Web scraping başarısız olursa static fallback
+5. **Çoklu Thread Yok**: Sadece sıralı işleme
 
-### Future Improvements
+### Gelecek İyileştirmeler
 
-1. **🌍 Multi-Language Support**: Expand to multiple languages
-2. **⚡ Async Processing**: Implement async/await for better performance
-3. **📊 Advanced Analytics**: Enhanced LangSmith dashboards
-4. **🔄 Retry Logic**: Better error handling and retries
-5. **💾 Database Memory**: Migrate long-term memory to MongoDB
-6. **🎨 UI Enhancement**: Add a web interface
-7. **🧩 Tool Expansion**: Add more tools (forecasts, historical data)
-8. **🔒 Security**: Enhanced API key management
+1. **🌍 Çoklu Dil Desteği**: Birden fazla dil desteği ekle
+2. **⚡ Async İşleme**: Daha iyi performans için async/await implementasyonu
+3. **📊 Gelişmiş Analitik**: Gelişmiş LangSmith dashboard'ları
+4. **🔄 Retry Mantığı**: Daha iyi hata yönetimi ve tekrarlar
+5. **💾 Veritabanı Belleği**: Uzun vadeli belleği MongoDB'ye taşı
+6. **🎨 UI İyileştirmesi**: Web arayüzü ekle
+7. **🧩 Araç Genişletme**: Daha fazla araç ekle (tahminler, geçmiş veri)
+8. **🔒 Güvenlik**: Gelişmiş API key yönetimi
 
-## Troubleshooting
+## Sorun Giderme
 
-### MongoDB Connection Issues
+### MongoDB Bağlantı Sorunları
 
-If you get connection errors:
+Bağlantı hatası alırsanız:
 ```bash
-# Check your connection string
-# Ensure IP whitelist in MongoDB Atlas allows your IP
-# Verify database name and collection name
+# Connection string'inizi kontrol edin
+# MongoDB Atlas IP whitelist'inin IP'nize izin verdiğinden emin olun
+# Veritabanı ve collection isimlerini doğrulayın
 ```
 
-### OpenAI API Errors
-
-```bash
-# Verify API key is correct
-# Check account has credits
-# Confirm rate limits not exceeded
-```
-
-### Vector Index Issues
+### OpenAI API Hataları
 
 ```bash
-# Ensure index is created in MongoDB Atlas
-# Check index name matches config
-# Verify embedding dimensions (1536 for text-embedding-3-small)
+# API key'inizin doğru olduğunu doğrulayın
+# Hesabın krediye sahip olduğunu kontrol edin
+# Rate limit aşılmadığını onaylayın
 ```
 
-## License
+### Vector Index Sorunları
 
-This project is created for educational purposes.
+```bash
+# MongoDB Atlas'ta index oluşturulduğundan emin olun
+# Index adının config ile eşleştiğini kontrol edin
+# Embedding dimensions'ı doğrulayın (text-embedding-3-small için 1536)
+```
+
+## Lisans
+
+Bu proje eğitim amaçlı oluşturulmuştur.
 
 ---
 
-**Note**: This assistant requires internet connectivity for:
-- OpenAI API calls
-- OpenWeatherMap API calls
-- MongoDB Atlas connection
+**Not**: Bu asistan şunlar için internet bağlantısı gerektirir:
+- OpenAI API çağrıları
+- OpenWeatherMap API çağrıları
+- MongoDB Atlas bağlantısı
 - LangSmith tracing
 
-Make sure all API keys are valid and services are accessible before running.
-
+Çalıştırmadan önce tüm API key'lerin geçerli ve servislerin erişilebilir olduğundan emin olun.
