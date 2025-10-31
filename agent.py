@@ -1,9 +1,7 @@
 """Main LangGraph agent that orchestrates RAG, API calls, and memory."""
-from typing import TypedDict, Annotated
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-import operator
 import logging
 
 from config import Config
@@ -12,13 +10,6 @@ from vector_store import VectorStoreManager
 from memory_manager import MemoryManager
 
 logger = logging.getLogger(__name__)
-
-
-# Define state for the agent
-class AgentState(TypedDict):
-    """State management for the LangGraph agent."""
-    messages: Annotated[list, operator.add]
-    next: str  # Next action to take
 
 
 class WeatherAssistant:

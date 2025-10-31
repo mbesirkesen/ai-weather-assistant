@@ -393,19 +393,15 @@ If you get connection errors:
 # Verify embedding dimensions (1536 for text-embedding-3-small)
 ```
 
-## Contributing
-
-This is an assignment project. For questions or issues, contact: meltem@smartup.network
-
-## License
-
-This project is created for educational purposes.
-
 ## Contact
 
 For questions about this assignment:
 - Email: meltem@smartup.network
 - GitHub: meltemseyhan
+
+## License
+
+This project is created for educational purposes.
 
 ---
 
