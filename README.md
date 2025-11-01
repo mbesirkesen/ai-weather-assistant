@@ -339,8 +339,7 @@ ai-weather-assistant/
 ├── requirements.txt       # Python bağımlılıkları
 ├── .gitignore           # Git ignore kuralları
 ├── README.md           # Bu dosya
-├── SETUP_GUIDE.md      # Kurulum rehberi (Türkçe)
-└── PROJE_OZETI.md      # Proje özeti
+└── SETUP_GUIDE.md      # Kurulum rehberi (Türkçe)
 ```
 
 ## Bilinen Limitler ve Gelecek Çalışmalar
