@@ -1,6 +1,4 @@
-"""
-Ana LangGraph agent dosyası - RAG, Weather API ve Memory yönetimini koordine eder.
-"""
+"""Main LangGraph agent file - coordinates RAG, Weather API, and Memory management."""
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -16,29 +14,29 @@ logger = logging.getLogger(__name__)
 
 class WeatherAssistant:
     """
-    Ana AI assistant sınıfı.
+    Main AI assistant class.
     
-    Bu sınıf üç ana bileşeni koordine eder:
-    1. RAG: Dokümantasyon sorularını cevaplar
-    2. Weather API: Canlı hava durumu verisi çeker
-    3. Memory: Konuşma geçmişini yönetir
+    This class coordinates three main components:
+    1. RAG: Answers documentation questions
+    2. Weather API: Fetches live weather data
+    3. Memory: Manages conversation history
     """
     
     def __init__(self):
-        """Assistant'ın temel bileşenlerini initialize eder."""
-        # LLM: Intent classification ve text generation için
+        """Initialize the assistant's core components."""
+        # LLM: For intent classification and text generation
         self.llm = ChatOpenAI(
-            model=Config.OPENAI_MODEL,  # gpt-4o-mini: hızlı ve ucuz
-            temperature=0.7,  # Yaratıcılık seviyesi (0-1 arası)
+            model=Config.OPENAI_MODEL,  # gpt-4o-mini: fast and cheap
+            temperature=0.7,  # Creativity level (0-1)
             openai_api_key=Config.OPENAI_API_KEY
         )
         
-        # Diğer bileşenler
-        self.weather_api = WeatherAPI()  # Canlı hava durumu verisi
-        self.vector_store = VectorStoreManager()  # RAG için vector search
-        self.memory_manager = MemoryManager()  # Konuşma geçmişi
+        # Other components
+        self.weather_api = WeatherAPI()  # Live weather data
+        self.vector_store = VectorStoreManager()  # RAG vector search
+        self.memory_manager = MemoryManager()  # Conversation history
         
-        # System prompt: LLM'in kimliğini ve yeteneklerini tanımlar
+        # System prompt: Defines LLM identity and capabilities
         self.system_prompt = """You are a helpful AI weather assistant.
 You have access to:
 1. OpenWeatherMap API documentation (through RAG)
@@ -58,17 +56,17 @@ Always be concise but informative. If you don't know something, be honest about 
     
     def classify_intent(self, query: str) -> str:
         """
-        Kullanıcı sorgusunun niyetini tespit eder.
+        Detect the intent of the user's query.
         
-        Rule-based yerine LLM kullanıyoruz çünkü:
-        - Doğal dili daha iyi anlıyor
-        - Her sorgu tipi için rule yazmaya gerek kalmıyor
-        - Yeni soru kalıplarına otomatik adapte oluyor
+        We use LLM instead of rule-based because:
+        - Better understanding of natural language
+        - No need to write rules for each query type
+        - Automatically adapts to new question patterns
         
         Returns:
-            "rag": Dokümantasyon soruları
-            "weather_api": Canlı hava durumu istekleri
-            "general": Genel konuşma
+            "rag": Documentation questions
+            "weather_api": Live weather requests
+            "general": General conversation
         """
         classification_prompt = """Classify the user's intent based on their query.
 
@@ -84,41 +82,41 @@ Respond with ONLY the classification word (rag, weather_api, or general):"""
         prompt = ChatPromptTemplate.from_template(classification_prompt)
         
         try:
-            # LLM'e prompt gönder ve intent'i al
+            # Send prompt to LLM and get intent
             response = self.llm.invoke(prompt.format_messages(query=query))
             intent = response.content.strip().lower()
             logger.info(f"Intent classified as: {intent}")
             return intent
         except Exception as e:
-            # Hata durumunda "general" döndür ki sistem çökmesin
+            # Return "general" on error to prevent system crash
             logger.error(f"Error classifying intent: {e}")
             return "general"
     
     def handle_rag_query(self, query: str) -> str:
         """
-        RAG (Retrieval-Augmented Generation) sorgularını işler.
+        Handle RAG (Retrieval-Augmented Generation) queries.
         
-        RAG yaklaşımı şu avantajları sağlar:
-        - Tüm dokümantasyonu prompt'a koymak çok token kullanır
-        - Vector search sadece ilgili kısmı bulur
-        - Maliyet ve hız optimizasyonu
+        RAG approach provides these advantages:
+        - Putting all documentation in prompt uses too many tokens
+        - Vector search finds only relevant parts
+        - Cost and speed optimization
         
-        Adımlar:
-        1. Vector search ile ilgili dokümanları bul
-        2. Context olarak LLM'e gönder
-        3. LLM context + soru ile cevap üretir
+        Steps:
+        1. Find relevant documents using vector search
+        2. Send as context to LLM
+        3. LLM generates answer from context + question
         """
         try:
-            # MongoDB Atlas vector search ile en ilgili 3 dokümanı bul
+            # Find top 3 relevant documents using MongoDB Atlas vector search
             docs = self.vector_store.similarity_search(query, k=3)
             
             if not docs:
                 return "I couldn't find relevant documentation. Please try rephrasing your question."
             
-            # Bulunan dokümanları birleştir
+            # Combine found documents
             context = "\n\n".join([doc.page_content for doc in docs])
             
-            # RAG prompt: System bilgisi + Context + Soru
+            # RAG prompt: System info + Context + Question
             rag_prompt = ChatPromptTemplate.from_messages([
                 ("system", self.system_prompt + "\n\nUse the following documentation to answer the question:"),
                 ("system", "Documentation:\n{context}"),
@@ -140,17 +138,17 @@ Respond with ONLY the classification word (rag, weather_api, or general):"""
     
     def handle_weather_query(self, query: str) -> str:
         """
-        Canlı hava durumu sorgularını işler.
+        Handle live weather queries.
         
-        Adımlar:
-        1. LLM ile sorgudan şehir isimlerini çıkar
-        2. Her şehir için OpenWeatherMap API'sini çağır
-        3. Veriyi kullanıcı dostu formatta sun
+        Steps:
+        1. Extract city names from query using LLM
+        2. Call OpenWeatherMap API for each city
+        3. Present data in user-friendly format
         
-        Neden LLM extraction? Regex kırılgan, doğal dil ifadeleri için iyi çalışmaz.
+        Why LLM extraction? Regex is brittle and doesn't work well with natural language.
         """
         try:
-            # LLM ile şehir isimlerini extract et
+            # Extract city names using LLM
             extraction_prompt = ChatPromptTemplate.from_messages([
                 ("system", "Extract city names from the user's weather query. Return ONLY the city names, separated by commas."),
                 ("user", "{query}")
@@ -159,19 +157,19 @@ Respond with ONLY the classification word (rag, weather_api, or general):"""
             extraction_chain = extraction_prompt | self.llm | StrOutputParser()
             cities_str = extraction_chain.invoke({"query": query})
             
-            # Virgülle ayrılmış string'i list'e çevir
+            # Convert comma-separated string to list
             cities = [city.strip() for city in cities_str.split(",") if city.strip()]
             
             if not cities:
                 return "I couldn't identify which cities you're asking about. Please specify the city name(s)."
             
-            # Her şehir için hava durumunu çek
+            # Fetch weather for each city
             results = {}
             for city in cities:
                 weather = self.weather_api.get_current_weather(city)
                 results[city] = weather
             
-            # Çıktıyı formatla: tek şehir detaylı, birden fazla şehir kompakt
+            # Format output: detailed for single city, compact for multiple cities
             if len(cities) == 1:
                 weather = results[cities[0]]
                 if "error" in weather:
@@ -192,7 +190,7 @@ Pressure: {weather['pressure']} hPa"""
                 return response_text
             
             else:
-                # Birden fazla şehir için kompakt format
+                # Compact format for multiple cities
                 response_lines = ["Weather for multiple cities:"]
                 for city in cities:
                     weather = results[city]
@@ -214,23 +212,23 @@ Pressure: {weather['pressure']} hPa"""
     
     def process_query(self, query: str) -> str:
         """
-        Ana query işleme metodu - tüm sorgular buradan geçer.
+        Main query processing method - all queries pass through here.
         
-        İş akışı:
-        1. Kullanıcı mesajını memory'e ekle
-        2. Intent'i tespit et (RAG/Weather/General)
-        3. Context dolmuşsa sıkıştır
-        4. Intent'e göre uygun handler'ı çağır
-        5. Cevabı memory'e ekle ve döndür
+        Workflow:
+        1. Add user message to memory
+        2. Detect intent (RAG/Weather/General)
+        3. Compress if context is full
+        4. Call appropriate handler based on intent
+        5. Add response to memory and return
         """
         try:
-            # 1. Memory'e ekle
+            # 1. Add to memory
             self.memory_manager.add_message("user", query)
             
             # 2. Intent classification
             intent = self.classify_intent(query)
             
-            # 3. Context dolduysa sıkıştır (kullanıcı fark etmez)
+            # 3. Compress if context is full (user won't notice)
             if self.memory_manager.should_summarize():
                 logger.info("Compressing conversation history...")
                 self.memory_manager.compress_history()
@@ -241,7 +239,7 @@ Pressure: {weather['pressure']} hPa"""
             elif intent == "weather_api":
                 response = self.handle_weather_query(query)
             else:
-                # Genel konuşma - sadece LLM ile cevap ver
+                # General conversation - respond with LLM only
                 general_prompt = ChatPromptTemplate.from_messages([
                     ("system", self.system_prompt),
                     ("user", "{query}")
@@ -249,7 +247,7 @@ Pressure: {weather['pressure']} hPa"""
                 chain = general_prompt | self.llm | StrOutputParser()
                 response = chain.invoke({"query": query})
             
-            # 5. Cevabı memory'e ekle
+            # 5. Add response to memory
             self.memory_manager.add_message("assistant", response)
             
             return response
