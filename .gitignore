@@ -55,3 +55,7 @@ test_memory.json
 
 # Setup guides
 MONGO_FIX.md
+
+# Temporary test files (keep main test_assistant.py)
+test_examples.py
+test_custom.py
