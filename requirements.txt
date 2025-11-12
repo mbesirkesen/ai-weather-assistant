@@ -1,6 +1,8 @@
 # Core frameworks
 langchain==0.3.7
+langchain-core==0.3.63
 langchain-openai==0.2.7
+langchain-text-splitters==0.3.8
 langgraph==0.2.69
 langsmith==0.1.147
 
