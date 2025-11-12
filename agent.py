@@ -2,6 +2,7 @@
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from typing import List, Dict, Any, Iterable
 import logging
 
 from config import Config
@@ -92,6 +93,55 @@ Respond with ONLY the classification word (rag, weather_api, or general):"""
             logger.error(f"Error classifying intent: {e}")
             return "general"
     
+    def retrieve_relevant_documents(self, query: str, k: int = 3):
+        """
+        Retrieve documents relevant to a RAG query using the vector store.
+        
+        Args:
+            query: User query string
+            k: Number of documents to retrieve
+        
+        Returns:
+            List of Documents (can be empty on failure)
+        """
+        try:
+            docs = self.vector_store.similarity_search(query, k=k)
+            logger.info("Retrieved %d documents for query", len(docs))
+            return docs
+        except Exception as e:
+            logger.error(f"Error retrieving documents for RAG: {e}")
+            return []
+    
+    def generate_rag_response(self, query: str, docs: Iterable) -> str:
+        """
+        Generate a RAG response from retrieved documents.
+        
+        Args:
+            query: Original user query
+            docs: Iterable of documents
+        
+        Returns:
+            Generated response string
+        """
+        docs = list(docs) if docs else []
+        if not docs:
+            return "I couldn't find relevant documentation. Please try rephrasing your question."
+        
+        context = "\n\n".join(getattr(doc, "page_content", str(doc)) for doc in docs)
+        
+        rag_prompt = ChatPromptTemplate.from_messages([
+            ("system", self.system_prompt + "\n\nUse the following documentation to answer the question:"),
+            ("system", "Documentation:\n{context}"),
+            ("user", "{question}")
+        ])
+        
+        chain = rag_prompt | self.llm | StrOutputParser()
+        response = chain.invoke({
+            "context": context,
+            "question": query
+        })
+        return response
+    
     def handle_rag_query(self, query: str) -> str:
         """
         Handle RAG (Retrieval-Augmented Generation) queries.
@@ -107,34 +157,101 @@ Respond with ONLY the classification word (rag, weather_api, or general):"""
         3. LLM generates answer from context + question
         """
         try:
-            # Find top 3 relevant documents using MongoDB Atlas vector search
-            docs = self.vector_store.similarity_search(query, k=3)
-            
-            if not docs:
-                return "I couldn't find relevant documentation. Please try rephrasing your question."
-            
-            # Combine found documents
-            context = "\n\n".join([doc.page_content for doc in docs])
-            
-            # RAG prompt: System info + Context + Question
-            rag_prompt = ChatPromptTemplate.from_messages([
-                ("system", self.system_prompt + "\n\nUse the following documentation to answer the question:"),
-                ("system", "Documentation:\n{context}"),
-                ("user", "{question}")
-            ])
-            
-            # LangChain chain: prompt -> LLM -> string
-            chain = rag_prompt | self.llm | StrOutputParser()
-            response = chain.invoke({
-                "context": context,
-                "question": query
-            })
-            
-            return response
+            # Find relevant documents using MongoDB Atlas vector search
+            docs = self.retrieve_relevant_documents(query, k=3)
+            return self.generate_rag_response(query, docs)
             
         except Exception as e:
             logger.error(f"Error in RAG query: {e}")
             return f"An error occurred while searching documentation: {str(e)}"
+    
+    def extract_cities(self, query: str) -> List[str]:
+        """
+        Extract city names from a weather-related query using the LLM.
+        
+        Args:
+            query: User query
+        
+        Returns:
+            List of city names
+        """
+        extraction_prompt = ChatPromptTemplate.from_messages([
+            ("system", "Extract city names from the user's weather query. Return ONLY the city names, separated by commas."),
+            ("user", "{query}")
+        ])
+        
+        extraction_chain = extraction_prompt | self.llm | StrOutputParser()
+        cities_str = extraction_chain.invoke({"query": query})
+        cities = [city.strip() for city in cities_str.split(",") if city.strip()]
+        return cities
+    
+    def get_weather_for_cities(self, cities: Iterable[str]) -> Dict[str, Dict[str, Any]]:
+        """
+        Fetch weather data for a list of cities.
+        
+        Args:
+            cities: Iterable of city names
+        
+        Returns:
+            Mapping of city name to weather data or error payload
+        """
+        results: Dict[str, Dict[str, Any]] = {}
+        for city in cities:
+            try:
+                results[city] = self.weather_api.get_current_weather(city)
+            except Exception as e:
+                logger.error(f"Error fetching weather for {city}: {e}")
+                results[city] = {"error": str(e)}
+        return results
+    
+    def format_weather_response(self, cities: List[str], results: Dict[str, Dict[str, Any]]) -> str:
+        """
+        Format weather data into a user-friendly response.
+        
+        Args:
+            cities: List of requested cities (preserves ordering)
+            results: Weather data mapping
+        
+        Returns:
+            Formatted response string
+        """
+        if not cities:
+            return "I couldn't identify which cities you're asking about. Please specify the city name(s)."
+        
+        if len(cities) == 1:
+            city = cities[0]
+            weather = results.get(city, {"error": "No data returned."})
+            
+            if "error" in weather:
+                return f"Sorry, I couldn't get weather data: {weather['error']}"
+            
+            response_text = f"""Current weather in {weather['city']}, {weather['country']}:
+
+Temperature: {weather['temperature']}°C (feels like {weather['feels_like']}°C)
+Condition: {weather['description']}
+Humidity: {weather['humidity']}%
+Wind: {weather['wind_speed']} m/s {weather.get('wind_direction_desc', '')}
+Cloud coverage: {weather['clouds']}%
+Pressure: {weather['pressure']} hPa"""
+            
+            if weather.get('visibility'):
+                response_text += f"\nVisibility: {weather['visibility']} km"
+            
+            return response_text
+        
+        response_lines = ["Weather for multiple cities:"]
+        for city in cities:
+            weather = results.get(city, {"error": "No data returned."})
+            if "error" not in weather:
+                response_lines.append(
+                    f"\n{weather['city']}, {weather['country']}: "
+                    f"{weather['temperature']}°C, {weather['description']}"
+                )
+            else:
+                response_lines.append(
+                    f"\n{city}: {weather['error']}"
+                )
+        return "\n".join(response_lines)
     
     def handle_weather_query(self, query: str) -> str:
         """
@@ -148,67 +265,34 @@ Respond with ONLY the classification word (rag, weather_api, or general):"""
         Why LLM extraction? Regex is brittle and doesn't work well with natural language.
         """
         try:
-            # Extract city names using LLM
-            extraction_prompt = ChatPromptTemplate.from_messages([
-                ("system", "Extract city names from the user's weather query. Return ONLY the city names, separated by commas."),
-                ("user", "{query}")
-            ])
-            
-            extraction_chain = extraction_prompt | self.llm | StrOutputParser()
-            cities_str = extraction_chain.invoke({"query": query})
-            
-            # Convert comma-separated string to list
-            cities = [city.strip() for city in cities_str.split(",") if city.strip()]
-            
+            cities = self.extract_cities(query)
+
             if not cities:
                 return "I couldn't identify which cities you're asking about. Please specify the city name(s)."
             
-            # Fetch weather for each city
-            results = {}
-            for city in cities:
-                weather = self.weather_api.get_current_weather(city)
-                results[city] = weather
-            
-            # Format output: detailed for single city, compact for multiple cities
-            if len(cities) == 1:
-                weather = results[cities[0]]
-                if "error" in weather:
-                    return f"Sorry, I couldn't get weather data: {weather['error']}"
-                
-                response_text = f"""Current weather in {weather['city']}, {weather['country']}:
-
-Temperature: {weather['temperature']}°C (feels like {weather['feels_like']}°C)
-Condition: {weather['description']}
-Humidity: {weather['humidity']}%
-Wind: {weather['wind_speed']} m/s {weather.get('wind_direction_desc', '')}
-Cloud coverage: {weather['clouds']}%
-Pressure: {weather['pressure']} hPa"""
-                
-                if weather['visibility']:
-                    response_text += f"\nVisibility: {weather['visibility']} km"
-                
-                return response_text
-            
-            else:
-                # Compact format for multiple cities
-                response_lines = ["Weather for multiple cities:"]
-                for city in cities:
-                    weather = results[city]
-                    if "error" not in weather:
-                        response_lines.append(
-                            f"\n{weather['city']}, {weather['country']}: "
-                            f"{weather['temperature']}°C, {weather['description']}"
-                        )
-                    else:
-                        response_lines.append(
-                            f"\n{city}: {weather['error']}"
-                        )
-                
-                return "\n".join(response_lines)
+            results = self.get_weather_for_cities(cities)
+            return self.format_weather_response(cities, results)
                 
         except Exception as e:
             logger.error(f"Error in weather query: {e}")
             return f"An error occurred while fetching weather data: {str(e)}"
+    
+    def generate_general_response(self, query: str) -> str:
+        """
+        Generate a general conversation response with the LLM.
+        
+        Args:
+            query: User query
+        
+        Returns:
+            Model-generated response
+        """
+        general_prompt = ChatPromptTemplate.from_messages([
+            ("system", self.system_prompt),
+            ("user", "{query}")
+        ])
+        chain = general_prompt | self.llm | StrOutputParser()
+        return chain.invoke({"query": query})
     
     def process_query(self, query: str) -> str:
         """
@@ -239,13 +323,7 @@ Pressure: {weather['pressure']} hPa"""
             elif intent == "weather_api":
                 response = self.handle_weather_query(query)
             else:
-                # General conversation - respond with LLM only
-                general_prompt = ChatPromptTemplate.from_messages([
-                    ("system", self.system_prompt),
-                    ("user", "{query}")
-                ])
-                chain = general_prompt | self.llm | StrOutputParser()
-                response = chain.invoke({"query": query})
+                response = self.generate_general_response(query)
             
             # 5. Add response to memory
             self.memory_manager.add_message("assistant", response)
