@@ -299,6 +299,13 @@ assistant.memory_manager.save_to_disk("memory.json")
 assistant.memory_manager.load_from_disk("memory.json")
 ```
 
+## Geliştirilmiş LangGraph Akışı
+
+- **Koşullu Yönlendirme**: `classify_intent` düğümü niyeti belirler ve `retrieve_context`, `extract_cities` veya `generate_general_response` yollarına yönlendirir.
+- **Çok Adımlı State Yönetimi**: Bellek hazırlama, RAG döküman toplama, hava durumu verisi çekme ve yanıt formatlama aşamaları ayrı düğümlerle yönetilir.
+- **Agentic Workflow**: RAG ve hava durumu yolları, görevleri alt adımlara parçalayarak observable ve genişletilebilir bir ajan davranışı sağlar.
+- **İzlenebilirlik**: `route_trace` state alanı, grafikte hangi düğümlerin çalıştığını kaydederek LangGraph Studio'da adım adım incelemeye olanak verir.
+
 ## LangGraph Studio Uyumluluğu
 
 Asistan LangGraph Studio ile tam uyumludur:
@@ -310,17 +317,29 @@ Asistan LangGraph Studio ile tam uyumludur:
 
 ## LangSmith Tracing
 
-Tüm işlemler LangSmith üzerinden izlenir:
+LangSmith tracing **otomatik olarak aktif** durumdadır. Tüm işlemler izlenir:
 
-- Sorgu işleme
-- API çağrıları
-- Vector aramaları
-- Bellek işlemleri
+- **Sorgu işleme**: Intent classification ve routing
+- **RAG işlemleri**: Vector search ve dokumentasyon retrieval
+- **API çağrıları**: OpenWeatherMap API ile etkileşimler
+- **Bellek işlemleri**: Mesaj kaydetme ve konuşma sıkıştırma
+
+### Nasıl Çalışır?
+
+1. LangChain otomatik olarak `.env` dosyasından ayarları okur
+2. `LANGCHAIN_TRACING_V2=true` olduğunda tracing başlar
+3. `LANGSMITH_API_KEY` ile LangSmith'e bağlanır
+4. Tüm chain'ler ve LLM çağrıları otomatik izlenir
+
+### İzlemeleri Görüntüleme
 
 İzlemeleri görmek için:
-1. `.env` dosyasında `LANGCHAIN_TRACING_V2=true` olduğundan emin olun
-2. `LANGSMITH_API_KEY` ve `LANGSMITH_PROJECT` ayarlayın
-3. https://smith.langchain.com adresinden izlemelere erişin
+1. https://smith.langchain.com adresine gidin
+2. Giriş yapın
+3. "Projects" → `ai-weather-assistant` seçin
+4. Tüm execution trace'leri göreceksiniz
+
+Her trace'de detaylar: input, steps, duration, tokens, cost, output
 
 ## Proje Yapısı
 
