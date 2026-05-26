@@ -9,7 +9,7 @@ AI Weather Assistant, şunları gösteren gelişmiş bir konuşmalı AI'dır:
 1. **Retrieval-Augmented Generation (RAG)**: OpenWeatherMap API dokümantasyonuna dayalı soru-cevap
 2. **Agentic Behavior**: OpenWeatherMap API'den canlı hava durumu verisi çeker
 3. **Memory Management**: Hem kısa vadeli (konuşma bağlamı) hem uzun vadeli (kalıcı) bellek implementasyonu
-4. **LangGraph Entegrasyonu**: Orchestration için LangGraph ve tracing için LangSmith ile geliştirildi
+4. **LangGraph Entegrasyonu**: Gelişmiş orchestration için LangGraph ile conditional routing, multi-step state management ve agentic workflow özellikleri
 
 ### Temel Yetenekler
 
@@ -59,7 +59,7 @@ AI Weather Assistant, şunları gösteren gelişmiş bir konuşmalı AI'dır:
 2. **Vector Store**: RAG için embeddings ile MongoDB Atlas
 3. **Weather API**: OpenWeatherMap API ile doğrudan entegrasyon
 4. **Memory Manager**: Konuşma bağlamı ve persistency'yi yönetir
-5. **LangGraph**: State management ve workflow orchestration
+5. **LangGraph**: Gelişmiş state management, conditional routing ve multi-step agentic workflow orchestration
 6. **LangSmith**: Tracing ve monitoring
 
 ## Teknoloji Yığını
@@ -168,7 +168,16 @@ npm install -g @langchain/langgraph-studio
 ```
    - LangGraph Studio'yu açın ve yerel server'a bağlanın
 
-### Seçenek 2: Doğrudan Test
+### Seçenek 2: LangGraph Test
+
+LangGraph workflow'unu test edin:
+```bash
+python test_graph.py
+```
+
+Bu komut LangGraph'in conditional routing, multi-step state management ve agentic workflow özelliklerini test eder.
+
+### Seçenek 3: Doğrudan Test
 
 Asistanı doğrudan test edin:
 ```bash
@@ -177,7 +186,20 @@ python test_assistant.py
 
 Bu komut önceden tanımlı test sorgularını çalıştırır ve cevapları gösterir.
 
-### Seçenek 3: İnteraktif Test
+### Seçenek 4: API Endpoint ile Test
+
+LangGraph server çalışırken API endpoint'i kullanarak test edin:
+```bash
+# Server'ı başlatın
+python server.py
+
+# Başka bir terminal'de curl ile test edin
+curl -X POST "http://127.0.0.1:20240/query" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Istanbul'da hava nasıl?", "thread_id": "test1"}'
+```
+
+### Seçenek 5: İnteraktif Test
 
 Python'da interaktif test için:
 ```python
@@ -299,47 +321,109 @@ assistant.memory_manager.save_to_disk("memory.json")
 assistant.memory_manager.load_from_disk("memory.json")
 ```
 
-## Geliştirilmiş LangGraph Akışı
+## LangGraph Gelişmiş Özellikleri
 
-- **Koşullu Yönlendirme**: `classify_intent` düğümü niyeti belirler ve `retrieve_context`, `extract_cities` veya `generate_general_response` yollarına yönlendirir.
-- **Çok Adımlı State Yönetimi**: Bellek hazırlama, RAG döküman toplama, hava durumu verisi çekme ve yanıt formatlama aşamaları ayrı düğümlerle yönetilir.
-- **Agentic Workflow**: RAG ve hava durumu yolları, görevleri alt adımlara parçalayarak observable ve genişletilebilir bir ajan davranışı sağlar.
-- **İzlenebilirlik**: `route_trace` state alanı, grafikte hangi düğümlerin çalıştığını kaydederek LangGraph Studio'da adım adım incelemeye olanak verir.
+Bu proje LangGraph'in güçlü özelliklerini kullanarak geliştirilmiştir:
+
+### 1. Conditional Routing (Koşullu Yönlendirme)
+
+Intent classification sonucuna göre sorgu farklı node'lara yönlendirilir:
+- **RAG Intent** → `retrieve_docs` node'u
+- **Weather API Intent** → `fetch_weather` node'u  
+- **General Intent** → `handle_general` node'u
+
+```python
+def route(state: GraphState) -> Literal["retrieve_docs", "fetch_weather", "handle_general"]:
+    """Intent'e göre conditional routing"""
+    intent = state.get("intent", "general")
+    if intent == "rag":
+        return "retrieve_docs"
+    elif intent == "weather_api":
+        return "fetch_weather"
+    else:
+        return "handle_general"
+```
+
+### 2. Multi-Step State Management (Çok Adımlı State Yönetimi)
+
+State her node'da güncellenir ve bir sonraki node'a aktarılır:
+
+**Workflow Adımları:**
+1. `classify_intent` → Intent tespiti, state'e `intent` eklenir
+2. `retrieve_docs` / `fetch_weather` / `handle_general` → Veri toplama, state'e veri eklenir
+3. `generate_response` → Cevap üretimi, state'e `response` eklenir
+4. `update_memory` → Bellek güncelleme, state'e metadata eklenir
+
+**State Yapısı:**
+```python
+class GraphState(TypedDict):
+    messages: List[str]              # Mesaj geçmişi
+    query: str                       # Kullanıcı sorgusu
+    intent: Optional[str]            # Tespit edilen intent
+    retrieved_docs: Optional[List]   # RAG için bulunan dokümanlar
+    weather_data: Optional[Dict]    # Weather API'den gelen veriler
+    response: Optional[str]          # Final cevap
+    next_action: str                 # Sonraki aksiyon
+    context: Optional[Dict]          # İşlem metadata'sı
+    error: Optional[str]             # Hata mesajları
+```
+
+### 3. Agentic Workflow (Ajan Tabanlı İş Akışı)
+
+Her işlem adımı ayrı bir node'da gerçekleştirilir, bu sayede:
+- **Modülerlik**: Her node bağımsız test edilebilir
+- **İzlenebilirlik**: Her adım LangSmith'te ayrı ayrı izlenir
+- **Esneklik**: Yeni node'lar kolayca eklenebilir
+- **Hata Yönetimi**: Her node kendi hata yönetimine sahiptir
+
+**Graph Yapısı:**
+```
+Entry Point
+    ↓
+classify_intent
+    ↓
+[Conditional Routing]
+    ├─→ retrieve_docs ──┐
+    ├─→ fetch_weather ──┤
+    └─→ handle_general ──┘
+            ↓
+    generate_response
+            ↓
+    update_memory
+            ↓
+         END
+```
+
+### 4. Checkpointing (Durum Kaydetme)
+
+MemorySaver ile state persistence:
+- Thread bazlı state yönetimi
+- Konuşma geçmişi korunur
+- Hata durumunda state geri yüklenebilir
 
 ## LangGraph Studio Uyumluluğu
 
 Asistan LangGraph Studio ile tam uyumludur:
 
-1. **Graph Tanımı**: `graph.py` içinde tanımlanmış state machine
-2. **Server**: Graph endpoint'lerini açığa çıkaran FastAPI server
+1. **Graph Tanımı**: `graph.py` içinde gelişmiş state machine tanımı
+2. **Server**: Graph endpoint'lerini açığa çıkaran FastAPI server (`/query` endpoint'i ile test edilebilir)
 3. **State Management**: Type safety için TypedDict tabanlı state
 4. **Tracing**: Otomatik LangSmith entegrasyonu
+5. **Checkpointing**: MemorySaver ile state persistence
 
 ## LangSmith Tracing
 
-LangSmith tracing **otomatik olarak aktif** durumdadır. Tüm işlemler izlenir:
+Tüm işlemler LangSmith üzerinden izlenir:
 
-- **Sorgu işleme**: Intent classification ve routing
-- **RAG işlemleri**: Vector search ve dokumentasyon retrieval
-- **API çağrıları**: OpenWeatherMap API ile etkileşimler
-- **Bellek işlemleri**: Mesaj kaydetme ve konuşma sıkıştırma
-
-### Nasıl Çalışır?
-
-1. LangChain otomatik olarak `.env` dosyasından ayarları okur
-2. `LANGCHAIN_TRACING_V2=true` olduğunda tracing başlar
-3. `LANGSMITH_API_KEY` ile LangSmith'e bağlanır
-4. Tüm chain'ler ve LLM çağrıları otomatik izlenir
-
-### İzlemeleri Görüntüleme
+- Sorgu işleme
+- API çağrıları
+- Vector aramaları
+- Bellek işlemleri
 
 İzlemeleri görmek için:
-1. https://smith.langchain.com adresine gidin
-2. Giriş yapın
-3. "Projects" → `ai-weather-assistant` seçin
-4. Tüm execution trace'leri göreceksiniz
-
-Her trace'de detaylar: input, steps, duration, tokens, cost, output
+1. `.env` dosyasında `LANGCHAIN_TRACING_V2=true` olduğundan emin olun
+2. `LANGSMITH_API_KEY` ve `LANGSMITH_PROJECT` ayarlayın
+3. https://smith.langchain.com adresinden izlemelere erişin
 
 ## Proje Yapısı
 
@@ -352,7 +436,8 @@ ai-weather-assistant/
 ├── memory_manager.py       # Bellek yönetimi
 ├── server.py              # LangGraph server
 ├── setup_database.py      # Veritabanı kurulum scripti
-├── test_assistant.py      # Test scripti
+├── test_assistant.py      # Agent test scripti
+├── test_graph.py          # LangGraph workflow test scripti
 ├── vector_store.py        # Vector store işlemleri
 ├── weather_api.py         # OpenWeatherMap API client
 ├── requirements.txt       # Python bağımlılıkları
