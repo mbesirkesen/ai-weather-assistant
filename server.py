@@ -18,8 +18,27 @@ logger = logging.getLogger(__name__)
 # Create FastAPI app
 app = FastAPI(title="AI Weather Assistant LangGraph Server")
 
-# Create the graph
-graph = create_weather_assistant_graph()
+_graph = None
+
+
+def get_graph():
+    """Lazy-load graph after config validation."""
+    global _graph
+    if _graph is None:
+        Config.validate()
+        _graph = create_weather_assistant_graph()
+    return _graph
+
+
+@app.on_event("startup")
+def startup_validation():
+    """Validate configuration on startup with a clear error message."""
+    try:
+        Config.validate()
+        logger.info("Configuration validated — server ready")
+    except ValueError as e:
+        logger.error("Configuration error: %s", e)
+        logger.error("Copy .env.example to .env and fill in your API keys")
 
 
 class QueryRequest(BaseModel):
@@ -53,14 +72,21 @@ def read_root():
 @app.get("/health")
 def health_check():
     """Health check endpoint."""
-    return {"status": "healthy"}
+    try:
+        Config.validate()
+        return {"status": "healthy", "config": "ok"}
+    except ValueError as e:
+        return JSONResponse(
+            status_code=503,
+            content={"status": "unhealthy", "error": str(e)},
+        )
 
 
 @app.get("/graph")
 def get_graph_schema():
     """Get the graph schema for LangGraph Studio."""
     try:
-        schema = graph.to_json()
+        schema = get_graph().to_json()
         return schema
     except Exception as e:
         logger.error(f"Error getting graph schema: {e}")
@@ -95,7 +121,7 @@ async def process_query(request: QueryRequest):
         
         # Invoke the graph
         logger.info(f"Processing query: {request.query}")
-        result = graph.invoke(initial_state, config)
+        result = get_graph().invoke(initial_state, config)
         
         # Extract response and context
         response_text = result.get("response", "")

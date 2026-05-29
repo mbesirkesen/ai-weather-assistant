@@ -1,9 +1,10 @@
 # Core frameworks
 langchain==0.3.7
-langchain-core>=0.3.17,<0.4.0
+langchain-core==0.3.63
 langchain-community==0.3.7
 langchain-openai==0.2.7
-langgraph
+langchain-text-splitters==0.3.8
+langgraph==0.5.4
 langsmith==0.1.147
 
 # Vector database
@@ -25,4 +26,3 @@ pydantic==2.9.2
 
 # Optional: for better logging
 colorama==0.4.6
-

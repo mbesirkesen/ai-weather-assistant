@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.11"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Smoke test (imports, no API keys required)
+        run: |
+          python -c "
+          from config import Config
+          from data_loader import load_documentation
+          from weather_api import WeatherAPI
+
+          docs = load_documentation()
+          assert len(docs) > 0
+
+          api = WeatherAPI()
+          result = api._format_weather_data({
+              'name': 'London',
+              'sys': {'country': 'GB'},
+              'main': {'temp': 15, 'feels_like': 14, 'humidity': 70, 'pressure': 1015},
+              'weather': [{'description': 'cloudy'}],
+              'wind': {'speed': 2.5, 'deg': 180},
+              'clouds': {'all': 80},
+              'dt': 0,
+          })
+          assert result['city'] == 'London'
+          print('Smoke test passed')
+          "
+
+      - name: Verify server starts without API keys
+        run: |
+          python -c "import server; print('Server module imported OK')"
+
+      - name: Verify config validation fails without .env
+        run: |
+          python -c "
+          from config import Config
+          try:
+              Config.validate()
+              raise SystemExit('Expected ValueError')
+          except ValueError:
+              print('Config validation correctly requires env vars')
+          "

@@ -105,7 +105,11 @@ pip install -r requirements.txt
 ```
 
 4. **Environment değişkenlerini ayarlayın**:
-   - `.env` dosyası oluşturun ve tüm API anahtarlarını doldurun:
+   - `.env.example` dosyasını kopyalayın ve API anahtarlarını doldurun:
+```bash
+cp .env.example .env
+```
+   - `.env` dosyasını düzenleyin:
 ```env
 OPENAI_API_KEY=sk-proj-...
 LANGSMITH_API_KEY=lsv2_...
@@ -116,7 +120,12 @@ MONGODB_DATABASE_NAME=ai_assistant_db
 OPENWEATHERMAP_API_KEY=...
 ```
 
-5. **MongoDB Atlas'ı Ayarlayın** (Detaylı rehber için `SETUP_GUIDE.md` dosyasına bakın):
+5. **Kurulumu doğrulayın**:
+```bash
+python check_setup.py
+```
+
+6. **MongoDB Atlas'ı Ayarlayın** (Detaylı rehber için `SETUP_GUIDE.md` dosyasına bakın):
    - https://www.mongodb.com/atlas adresinden ücretsiz cluster oluşturun
    - Connection string'inizi alın
    - MongoDB Atlas UI'da vector search index'i oluşturun:
@@ -140,7 +149,7 @@ OPENWEATHERMAP_API_KEY=...
      - Index adı: `vector_index`
      - Collection: `weather_docs`
 
-6. **Vector veritabanını doldurun**:
+7. **Vector veritabanını doldurun**:
 ```bash
 python setup_database.py
 ```
@@ -440,7 +449,9 @@ ai-weather-assistant/
 ├── test_graph.py          # LangGraph workflow test scripti
 ├── vector_store.py        # Vector store işlemleri
 ├── weather_api.py         # OpenWeatherMap API client
+├── check_setup.py         # Kurulum doğrulama scripti
 ├── requirements.txt       # Python bağımlılıkları
+├── .env.example           # Ortam değişkenleri şablonu
 ├── .gitignore           # Git ignore kuralları
 ├── README.md           # Bu dosya
 └── SETUP_GUIDE.md      # Kurulum rehberi (Türkçe)
